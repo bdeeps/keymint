@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CATEGORIES,
   effectiveEntropy,
@@ -8,9 +8,11 @@ import {
   type Preset,
 } from './lib/presets'
 
-function CopyIcon() {
+const CHOICE_COUNT = 3
+
+function CopyIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="9" y="9" width="13" height="13" rx="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
     </svg>
@@ -35,19 +37,24 @@ function ShieldIcon() {
   )
 }
 
+function copyText(text: string): string {
+  return (text.split('\n\nBasic ')[0] ?? text).trim()
+}
+
 export default function App() {
   const [activeId, setActiveId] = useState(PRESETS[0]!.id)
-  const [value, setValue] = useState('')
+  const [choices, setChoices] = useState<string[]>([])
+  const [selected, setSelected] = useState(0)
   const [query, setQuery] = useState('')
-  const [copied, setCopied] = useState(false)
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [category, setCategory] = useState<Category | 'all'>('all')
-  const outputRef = useRef<HTMLTextAreaElement>(null)
 
   const active = getPreset(activeId) ?? PRESETS[0]!
 
   const regenerate = useCallback((preset: Preset = active) => {
-    setValue(preset.generate())
-    setCopied(false)
+    setChoices(Array.from({ length: CHOICE_COUNT }, () => preset.generate()))
+    setSelected(0)
+    setCopiedIndex(null)
   }, [active])
 
   useEffect(() => {
@@ -67,12 +74,15 @@ export default function App() {
     })
   }, [query, category])
 
-  const copy = useCallback(async () => {
-    const text = value.split('\n\nBasic ')[0] ?? value
-    await navigator.clipboard.writeText(text.trim())
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [value])
+  const copyChoice = useCallback(async (index: number) => {
+    const text = choices[index]
+    if (!text) return
+    await navigator.clipboard.writeText(copyText(text))
+    setCopiedIndex(index)
+    setTimeout(() => setCopiedIndex(null), 2000)
+  }, [choices])
+
+  const copySelected = useCallback(() => copyChoice(selected), [copyChoice, selected])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -86,24 +96,34 @@ export default function App() {
       }
       if (e.key === 'c' || e.key === 'C') {
         e.preventDefault()
-        copy()
+        copySelected()
+      }
+      if (e.key >= '1' && e.key <= '3') {
+        const idx = Number(e.key) - 1
+        if (idx < choices.length) setSelected(idx)
       }
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault()
-        const idx = filtered.findIndex((p) => p.id === activeId)
-        const next =
-          e.key === 'ArrowDown'
-            ? filtered[Math.min(idx + 1, filtered.length - 1)]
-            : filtered[Math.max(idx - 1, 0)]
-        if (next) setActiveId(next.id)
+        if (e.shiftKey) {
+          e.preventDefault()
+          const idx = filtered.findIndex((p) => p.id === activeId)
+          const next =
+            e.key === 'ArrowDown'
+              ? filtered[Math.min(idx + 1, filtered.length - 1)]
+              : filtered[Math.max(idx - 1, 0)]
+          if (next) setActiveId(next.id)
+        } else {
+          e.preventDefault()
+          setSelected((s) =>
+            e.key === 'ArrowDown' ? Math.min(s + 1, CHOICE_COUNT - 1) : Math.max(s - 1, 0),
+          )
+        }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [regenerate, copy, filtered, activeId])
+  }, [regenerate, copySelected, filtered, activeId, choices.length])
 
   const bits = effectiveEntropy(active)
-  const isMultiline = value.includes('\n')
 
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
@@ -157,7 +177,7 @@ export default function App() {
           </div>
         </div>
 
-        <nav className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-4">
+        <nav className="scrollbar-thin max-h-[40vh] flex-1 overflow-y-auto px-2 pb-4 lg:max-h-none">
           {filtered.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-[var(--color-muted)]">No matches</p>
           ) : (
@@ -186,19 +206,20 @@ export default function App() {
 
         <footer className="hidden border-t border-[var(--color-border)] px-4 py-3 text-[10px] text-[var(--color-muted)] lg:block">
           <kbd className="rounded bg-white/10 px-1.5 py-0.5">R</kbd> regenerate ·{' '}
-          <kbd className="rounded bg-white/10 px-1.5 py-0.5">C</kbd> copy ·{' '}
-          <kbd className="rounded bg-white/10 px-1.5 py-0.5">↑↓</kbd> navigate
+          <kbd className="rounded bg-white/10 px-1.5 py-0.5">C</kbd> copy selected ·{' '}
+          <kbd className="rounded bg-white/10 px-1.5 py-0.5">1–3</kbd> pick ·{' '}
+          <kbd className="rounded bg-white/10 px-1.5 py-0.5">↑↓</kbd> option
         </footer>
       </aside>
 
-      <main className="flex flex-1 flex-col">
-        <div className="flex flex-1 flex-col px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
-          <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight text-white">{active.name}</h2>
               <p className="mt-1 max-w-xl text-sm text-[var(--color-muted)]">{active.description}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-1 text-xs font-medium text-emerald-300/90">
                 {bits} bits entropy
               </span>
@@ -210,43 +231,108 @@ export default function App() {
             </div>
           </div>
 
-          <div
-            className="relative flex flex-1 flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] shadow-[0_0_0_1px_rgba(255,255,255,0.02)_inset,0_24px_48px_-24px_rgba(0,0,0,0.5)]"
-            onClick={() => outputRef.current?.select()}
-          >
-            <textarea
-              ref={outputRef}
-              readOnly
-              value={value}
-              spellCheck={false}
-              className={`w-full flex-1 resize-none bg-transparent px-5 py-5 font-mono text-sm leading-relaxed text-emerald-50/95 outline-none selection:bg-emerald-500/30 ${
-                isMultiline ? 'min-h-[200px]' : 'min-h-[120px]'
-              }`}
-              style={{ fontFamily: 'var(--font-mono)' }}
-            />
-            <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] px-4 py-3">
-              <p className="text-xs text-[var(--color-muted)]">{active.hint}</p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => regenerate()}
-                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-emerald-500/40 hover:text-white"
-                  title="Regenerate (R)"
-                >
-                  <RefreshIcon />
-                  <span className="hidden sm:inline">Regenerate</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={copy}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500"
-                  title="Copy (C)"
-                >
-                  <CopyIcon />
-                  {copied ? 'Copied' : 'Copy'}
-                </button>
-              </div>
+          {/* Action bar — regenerate stays visible at top */}
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-white">{CHOICE_COUNT} independent options</p>
+              <p className="text-xs text-[var(--color-muted)]">{active.hint} — click to select, then copy</p>
             </div>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => regenerate()}
+                className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+                title="Regenerate all options (R)"
+              >
+                <RefreshIcon />
+                Regenerate all
+              </button>
+              <button
+                type="button"
+                onClick={copySelected}
+                className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-emerald-500/40 hover:text-white"
+                title="Copy selected option (C)"
+              >
+                <CopyIcon />
+                {copiedIndex === selected ? 'Copied' : `Copy #${selected + 1}`}
+              </button>
+            </div>
+          </div>
+
+          {/* Choice cards */}
+          <div className="space-y-3">
+            {choices.map((choice, index) => {
+              const isMultiline = choice.includes('\n')
+              const isSelected = selected === index
+              const display = copyText(choice)
+              return (
+                <div
+                  key={`${activeId}-${index}-${display.slice(0, 8)}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelected(index)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelected(index)
+                    }
+                  }}
+                  className={`rounded-xl border-2 transition-all ${
+                    isSelected
+                      ? 'border-emerald-500/60 bg-emerald-500/5 shadow-[0_0_0_1px_rgba(34,211,160,0.15)]'
+                      : 'border-[var(--color-border)] bg-[var(--color-panel)] hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold ${
+                          isSelected
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-[var(--color-elevated)] text-[var(--color-muted)]'
+                        }`}
+                      >
+                        {index + 1}
+                      </span>
+                      <span className="text-sm font-medium text-slate-200">
+                        Option {index + 1}
+                        {isSelected && (
+                          <span className="ml-2 text-xs font-normal text-emerald-400">Selected</span>
+                        )}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        copyChoice(index)
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <CopyIcon size={14} />
+                      {copiedIndex === index ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  <div className="px-4 py-4">
+                    {isMultiline ? (
+                      <pre
+                        className="max-h-48 overflow-auto font-mono text-xs leading-relaxed whitespace-pre-wrap text-emerald-50/95"
+                        style={{ fontFamily: 'var(--font-mono)' }}
+                      >
+                        {display}
+                      </pre>
+                    ) : (
+                      <p
+                        className="break-all font-mono text-sm leading-relaxed text-emerald-50/95 select-all"
+                        style={{ fontFamily: 'var(--font-mono)' }}
+                      >
+                        {display}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
           <p className="mt-6 flex items-start gap-2 text-xs text-[var(--color-muted)]">

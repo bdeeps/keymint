@@ -1,7 +1,8 @@
 {
   "name": "keymint",
+  "description": "Browser-based CSPRNG secret generator for API keys, JWT secrets, webhook signing keys, AES keys, UUIDs, and .env bundles — private, no signup.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
