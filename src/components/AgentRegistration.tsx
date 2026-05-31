@@ -100,11 +100,42 @@ export default function AgentRegistration() {
       <div className="mb-6">
         <h2 className="text-2xl font-semibold tracking-tight text-white">Agent registration</h2>
         <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">
-          AI agents self-register to receive an API key and MCP endpoint. Credentials are stored in
-          Postgres on Railway — use the key as a Bearer token for{' '}
-          <code className="text-slate-400">generate_secret</code> and{' '}
-          <code className="text-slate-400">agent_whoami</code>.
+          Register an agent to get an API key and MCP connection details.
         </p>
+        <nav className="mt-3 flex flex-wrap gap-3 text-xs">
+          <a
+            href="/AGENTS.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            Agent guide
+          </a>
+          <a
+            href="/api/agent-manifest"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            JSON manifest
+          </a>
+          <a
+            href="/docs/agents/mcp.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            MCP docs
+          </a>
+          <a
+            href="/docs/skill.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            Skill file
+          </a>
+        </nav>
       </div>
 
       <div className="mb-8 grid gap-6 lg:grid-cols-2">
@@ -114,8 +145,7 @@ export default function AgentRegistration() {
         >
           <h3 className="text-sm font-semibold text-white">Register new agent</h3>
           <p className="mt-1 text-xs text-[var(--color-muted)]">
-            REST: <code className="text-slate-400">POST /api/agents/register</code> · MCP tool:{' '}
-            <code className="text-slate-400">register_agent</code>
+            Choose a name and optional description for this agent.
           </p>
 
           <label className="mt-4 block text-xs font-medium text-slate-300">
@@ -158,25 +188,11 @@ export default function AgentRegistration() {
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
           <h3 className="text-sm font-semibold text-white">MCP endpoint</h3>
           <p className="mt-1 text-xs text-[var(--color-muted)]">
-            Streamable HTTP transport for Cursor, Claude Desktop, and SDK agents.
+            Use this URL when connecting from Cursor or other MCP clients.
           </p>
           <code className="mt-3 block break-all rounded-lg bg-[var(--color-surface)] px-3 py-2 font-mono text-xs text-emerald-200/90">
             {mcpEndpoint || `${window.location.origin}/mcp`}
           </code>
-          <ul className="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
-            <li>
-              <span className="text-emerald-400">register_agent</span> — public, no auth
-            </li>
-            <li>
-              <span className="text-emerald-400">list_presets</span> — public
-            </li>
-            <li>
-              <span className="text-emerald-400">generate_secret</span> — Bearer apiKey
-            </li>
-            <li>
-              <span className="text-emerald-400">agent_whoami</span> — Bearer apiKey
-            </li>
-          </ul>
         </div>
       </div>
 
@@ -232,13 +248,10 @@ export default function AgentRegistration() {
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)]">
         <div className="border-b border-[var(--color-border)] px-5 py-3">
           <h3 className="text-sm font-semibold text-white">Registered agents</h3>
-          <p className="text-xs text-[var(--color-muted)]">
-            Stored in Postgres — API keys are hashed; only prefixes are kept for lookup.
-          </p>
         </div>
         {agents.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-[var(--color-muted)]">
-            No agents yet. Register one above or via MCP <code className="text-slate-400">register_agent</code>.
+            No agents yet. Register one above to get started.
           </p>
         ) : (
           <ul className="divide-y divide-[var(--color-border)]">

@@ -10,6 +10,12 @@ npm install --no-audit --no-fund
 echo "==> Building frontend..."
 npm run build
 
+echo "==> Copying agent documentation into dist..."
+cp AGENTS.md dist/AGENTS.md
+mkdir -p dist/docs/agents
+cp docs/agents/*.md dist/docs/agents/
+cp .cursor/skills/keymint/SKILL.md dist/docs/skill.md
+
 echo "==> Installing server dependencies..."
 cd server
 npm install --no-audit --no-fund

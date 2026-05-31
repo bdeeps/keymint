@@ -12,6 +12,8 @@ import {
   generateSecrets,
 } from './agents.js'
 import { startMcpServer } from './mcp.js'
+import { buildAgentManifest } from './agent-manifest.js'
+import { serveAgentDoc } from './docs.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const DIST_DIR = join(__dirname, '../../dist')
@@ -74,11 +76,21 @@ async function handleApi(
 ): Promise<boolean> {
   const url = req.url?.split('?')[0] ?? ''
 
+  if (
+    (url === '/api/agent-manifest' || url === '/.well-known/keymint.json') &&
+    req.method === 'GET'
+  ) {
+    json(res, 200, buildAgentManifest())
+    return true
+  }
+
   if (url === '/health' && req.method === 'GET') {
+    const manifest = buildAgentManifest()
     json(res, 200, {
       ok: true,
       service: 'keymint',
-      mcp: `${publicBaseUrl()}/mcp`,
+      mcp: manifest.mcp.endpoint,
+      agentManifest: `${publicBaseUrl()}/api/agent-manifest`,
       database: Boolean(process.env.DATABASE_URL),
     })
     return true
@@ -98,9 +110,16 @@ async function handleApi(
         name: body.name,
         description: body.description,
       })
+      const manifest = buildAgentManifest()
       json(res, 201, {
         ...agent,
         message: 'Store apiKey securely — it cannot be retrieved again.',
+        documentation: manifest.documentation,
+        nextSteps: [
+          `Read ${manifest.documentation.agentsGuide}`,
+          `Use Bearer ${agent.apiKey.slice(0, 16)}… for generate_secret`,
+          `MCP endpoint: ${agent.mcpEndpoint}`,
+        ],
         cursorConfig: {
           mcpServers: {
             keymint: {
@@ -188,6 +207,9 @@ async function main() {
 
     if (await handleApi(req, res, pool)) return
 
+    const pathname = req.url?.split('?')[0] ?? ''
+    if (req.method === 'GET' && (await serveAgentDoc(pathname, res))) return
+
     if (req.method === 'GET' && (await serveStatic(req, res))) return
 
     res.statusCode = 404
@@ -202,6 +224,8 @@ async function main() {
     console.log(`  Web UI:  ${publicBaseUrl()}/`)
     console.log(`  MCP:     ${publicBaseUrl()}/mcp`)
     console.log(`  REST:    ${publicBaseUrl()}/api/agents/register`)
+    console.log(`  Agents:  ${publicBaseUrl()}/AGENTS.md`)
+    console.log(`  Manifest:${publicBaseUrl()}/api/agent-manifest`)
   })
 }
 

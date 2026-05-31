@@ -117,6 +117,19 @@ Designed for speed: keyboard shortcuts, monospace output, entropy badges, and fo
 
 KeyMint includes a **self-service agent registry** backed by **Postgres** (Railway). AI agents register once, receive an API key, and call the **MCP endpoint** to generate secrets programmatically.
 
+### Documentation for AI agents
+
+| Resource | Path |
+|----------|------|
+| **Start here** | [`AGENTS.md`](./AGENTS.md) |
+| **JSON manifest** | `GET /api/agent-manifest` or `/.well-known/keymint.json` |
+| MCP reference | [`docs/agents/mcp.md`](./docs/agents/mcp.md) |
+| REST reference | [`docs/agents/rest.md`](./docs/agents/rest.md) |
+| Preset catalog | [`docs/agents/presets.md`](./docs/agents/presets.md) |
+| Cursor skill | [`.cursor/skills/keymint/SKILL.md`](./.cursor/skills/keymint/SKILL.md) (also served at `/docs/skill.md`) |
+
+Agents should fetch the manifest first, then `POST /api/agents/register` or MCP `register_agent`.
+
 ### REST API
 
 | Method | Path | Auth | Description |

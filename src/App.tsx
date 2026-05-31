@@ -239,7 +239,7 @@ export default function App() {
 
         {view === 'agents' && (
           <div className="flex-1 px-4 py-4 text-xs leading-relaxed text-[var(--color-muted)]">
-            <p>Agents connect via MCP at <code className="text-slate-400">/mcp</code> or REST registration.</p>
+            <p>Register agents and connect via MCP.</p>
           </div>
         )}
 
