@@ -113,6 +113,70 @@ Designed for speed: keyboard shortcuts, monospace output, entropy badges, and fo
 
 ---
 
+## Agent registration & MCP server
+
+KeyMint includes a **self-service agent registry** backed by **Postgres** (Railway). AI agents register once, receive an API key, and call the **MCP endpoint** to generate secrets programmatically.
+
+### REST API
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/agents/register` | — | Register agent (`name`, optional `description`) |
+| `GET` | `/api/agents` | — | List registered agents (no secrets) |
+| `GET` | `/api/agents/me` | Bearer | Current agent profile |
+| `POST` | `/api/secrets/generate` | Bearer | Generate secrets (`presetId`, `count`) |
+| `GET` | `/api/presets` | — | List preset catalog |
+| `GET` | `/health` | — | Health check |
+
+### MCP tools (`POST /mcp`)
+
+Streamable HTTP transport (Cursor, Claude Desktop, SDK).
+
+| Tool | Auth | Description |
+|------|------|-------------|
+| `register_agent` | Public | Self-register; returns `agentId` + `apiKey` (once) |
+| `list_presets` | Public | All secret preset definitions |
+| `generate_secret` | Bearer `km_agent_…` | Generate values for a `preset_id` |
+| `agent_whoami` | Bearer | Authenticated agent metadata |
+
+### Cursor MCP config
+
+```json
+{
+  "mcpServers": {
+    "keymint": {
+      "url": "https://your-app.up.railway.app/mcp",
+      "headers": {
+        "Authorization": "Bearer km_agent_YOUR_KEY"
+      }
+    }
+  }
+}
+```
+
+### Deploy on Railway
+
+1. Create a project and attach **PostgreSQL**.
+2. Set variables from [`.env.example`](.env.example):
+   - `DATABASE_URL` (from Postgres plugin)
+   - `PUBLIC_URL` (your Railway public URL)
+   - `KEYMINT_PEPPER` (long random string for API key hashing)
+3. Deploy from this repo — `railway.toml` builds the UI and starts the Node server on `$PORT`.
+4. Open the **Agents** tab in the UI to register agents or use MCP `register_agent`.
+
+Local full stack:
+
+```bash
+# Terminal 1 — API + MCP (requires DATABASE_URL)
+cd server && cp ../.env.example .env  # edit DATABASE_URL
+npm run dev
+
+# Terminal 2 — UI (proxies /api and /mcp to :3000)
+npm run dev
+```
+
+---
+
 ## Quick start
 
 ```bash
@@ -137,9 +201,9 @@ Deploy the `dist/` folder to any static host (Vercel, Netlify, Cloudflare Pages,
 
 ## Tech stack
 
-- **React 19** + **TypeScript** + **Vite**
+- **React 19** + **TypeScript** + **Vite** (browser UI)
+- **Node** + **PostgreSQL** + **MCP SDK** (agent registry & API)
 - **Tailwind CSS v4**
-- Zero backend dependencies
 
 ---
 

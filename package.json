@@ -6,7 +6,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "npm run dev --prefix server",
+    "dev:all": "npm run dev & npm run dev:server",
     "build": "tsc -b && vite build",
+    "build:server": "npm run build --prefix server",
+    "start": "npm run start --prefix server",
+    "db:migrate": "npm run db:migrate --prefix server",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import AgentRegistration from './components/AgentRegistration'
 import {
   CATEGORIES,
   effectiveEntropy,
@@ -7,6 +8,8 @@ import {
   type Category,
   type Preset,
 } from './lib/presets'
+
+type AppView = 'secrets' | 'agents'
 
 const CHOICE_COUNT = 3
 
@@ -42,6 +45,7 @@ function copyText(text: string): string {
 }
 
 export default function App() {
+  const [view, setView] = useState<AppView>('secrets')
   const [activeId, setActiveId] = useState(PRESETS[0]!.id)
   const [choices, setChoices] = useState<string[]>([])
   const [selected, setSelected] = useState(0)
@@ -140,6 +144,32 @@ export default function App() {
           </div>
         </header>
 
+        <div className="flex gap-1 border-b border-[var(--color-border)] px-3 py-3">
+          <button
+            type="button"
+            onClick={() => setView('secrets')}
+            className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+              view === 'secrets'
+                ? 'bg-emerald-500/20 text-emerald-300'
+                : 'text-[var(--color-muted)] hover:bg-white/5'
+            }`}
+          >
+            Secrets
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('agents')}
+            className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+              view === 'agents'
+                ? 'bg-emerald-500/20 text-emerald-300'
+                : 'text-[var(--color-muted)] hover:bg-white/5'
+            }`}
+          >
+            Agents
+          </button>
+        </div>
+
+        {view === 'secrets' && (
         <div className="space-y-3 px-4 py-4">
           <input
             type="search"
@@ -176,7 +206,9 @@ export default function App() {
             ))}
           </div>
         </div>
+        )}
 
+        {view === 'secrets' && (
         <nav className="scrollbar-thin max-h-[40vh] flex-1 overflow-y-auto px-2 pb-4 lg:max-h-none">
           {filtered.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-[var(--color-muted)]">No matches</p>
@@ -203,6 +235,13 @@ export default function App() {
             </ul>
           )}
         </nav>
+        )}
+
+        {view === 'agents' && (
+          <div className="flex-1 px-4 py-4 text-xs leading-relaxed text-[var(--color-muted)]">
+            <p>Agents connect via MCP at <code className="text-slate-400">/mcp</code> or REST registration.</p>
+          </div>
+        )}
 
         <footer className="hidden border-t border-[var(--color-border)] px-4 py-3 text-[10px] text-[var(--color-muted)] lg:block">
           <kbd className="rounded bg-white/10 px-1.5 py-0.5">R</kbd> regenerate ·{' '}
@@ -213,6 +252,9 @@ export default function App() {
       </aside>
 
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {view === 'agents' ? (
+          <AgentRegistration />
+        ) : (
         <div className="px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -343,7 +385,9 @@ export default function App() {
             </span>
           </p>
         </div>
+        )}
 
+        {view === 'secrets' && (
         <div className="grid grid-cols-2 gap-2 border-t border-[var(--color-border)] bg-[var(--color-panel)] p-3 sm:grid-cols-4 lg:hidden">
           {PRESETS.slice(0, 4).map((p) => (
             <button
@@ -356,6 +400,7 @@ export default function App() {
             </button>
           ))}
         </div>
+        )}
       </main>
     </div>
   )
