@@ -20,6 +20,10 @@ export function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
+export function utf8ToBase64(text: string): string {
+  return bytesToBase64(new TextEncoder().encode(text))
+}
+
 export function bytesToBase64Url(bytes: Uint8Array): string {
   return bytesToBase64(bytes)
     .replace(/\+/g, '-')
@@ -184,20 +188,20 @@ const WORDS = [
   'zone', 'zoom',
 ] as const
 
+function randomWordIndex(n: number): number {
+  const limit = Math.floor(65536 / n) * n
+  while (true) {
+    const b = randomBytes(2)
+    const value = (b[0]! << 8) | b[1]!
+    if (value < limit) return value % n
+  }
+}
+
 export function randomPassphrase(wordCount = 6): string {
-  const bytes = randomBytes(wordCount * 2)
-  const words: string[] = []
   const n = WORDS.length
-  const max = 256 - (256 % n)
-  let i = 0
+  const words: string[] = []
   while (words.length < wordCount) {
-    if (i >= bytes.length) {
-      const more = randomBytes(wordCount * 2)
-      bytes.set(more, i)
-    }
-    const b = bytes[i++]!
-    if (b >= max) continue
-    words.push(WORDS[b % n]!)
+    words.push(WORDS[randomWordIndex(n)]!)
   }
   return words.join('-')
 }

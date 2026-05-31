@@ -6,6 +6,7 @@ import {
   randomHex,
   randomPassphrase,
   randomUsername,
+  utf8ToBase64,
   uuidV4,
   uuidV7,
 } from './crypto.js'
@@ -308,7 +309,7 @@ export const PRESETS: Preset[] = [
     generate: () => {
       const user = randomUsername()
       const pass = randomDbPassword(24)
-      const encoded = btoa(`${user}:${pass}`)
+      const encoded = utf8ToBase64(`${user}:${pass}`)
       return `${user}:${pass}\n\nBasic ${encoded}`
     },
   },
