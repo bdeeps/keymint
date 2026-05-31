@@ -1,2 +1,4 @@
 [variables]
 NIXPACKS_NODE_VERSION = "22"
+NPM_CONFIG_CACHE = "/tmp/npm-cache"
+VITE_CACHE_DIR = "/tmp/vite-cache"
